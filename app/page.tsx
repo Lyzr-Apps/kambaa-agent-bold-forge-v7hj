@@ -588,11 +588,12 @@ function ChatView({ selectedRole, sampleMode, activeAgentId, setActiveAgentId }:
           {loading && (
             <div className="flex justify-start">
               <GlassCard className="px-5 py-4 max-w-[80%]">
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-4 w-2/3" />
+                <div className="flex items-center gap-1.5">
+                  <span className="block w-2.5 h-2.5 rounded-full bg-muted-foreground/60 animate-[typingDot_1.4s_ease-in-out_infinite]" />
+                  <span className="block w-2.5 h-2.5 rounded-full bg-muted-foreground/60 animate-[typingDot_1.4s_ease-in-out_0.2s_infinite]" />
+                  <span className="block w-2.5 h-2.5 rounded-full bg-muted-foreground/60 animate-[typingDot_1.4s_ease-in-out_0.4s_infinite]" />
                 </div>
+                <p className="text-xs text-muted-foreground mt-2">KKIA is thinking...</p>
               </GlassCard>
             </div>
           )}
@@ -1567,6 +1568,12 @@ export default function Page() {
 
   return (
     <ErrorBoundary>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes typingDot {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1.1); }
+        }
+      `}} />
       <div style={THEME_VARS} className="h-screen flex flex-col bg-background text-foreground font-sans" >
         {/* Top bar with sample toggle */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-border" style={{ background: 'linear-gradient(135deg, hsl(210 20% 97%) 0%, hsl(220 25% 95%) 35%, hsl(200 20% 96%) 70%, hsl(230 15% 97%) 100%)' }}>
