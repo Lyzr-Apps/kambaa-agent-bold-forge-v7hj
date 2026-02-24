@@ -1,0 +1,56 @@
+{
+  "agent_name": "Auto-Update and Conflict Detection Agent",
+  "agent_id": "699d404fab5c2a239c014dee",
+  "description": "Scans knowledge base for outdated SOPs, detects contradictory instructions across documents, identifies pattern shifts, and generates update suggestions with severity ratings",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "status": "string",
+    "scan_summary": {
+      "total_artifacts_scanned": "number",
+      "issues_found": "number",
+      "critical_count": "number",
+      "high_count": "number",
+      "medium_count": "number",
+      "low_count": "number"
+    },
+    "findings": [
+      {
+        "severity": "string",
+        "type": "string",
+        "title": "string",
+        "description": "string",
+        "affected_artifacts": [
+          "string"
+        ],
+        "suggested_action": "string",
+        "auto_resolvable": "boolean"
+      }
+    ]
+  },
+  "example_response": {
+    "status": "sample string",
+    "scan_summary": {
+      "total_artifacts_scanned": 0,
+      "issues_found": 0,
+      "critical_count": 0,
+      "high_count": 0,
+      "medium_count": 0,
+      "low_count": 0
+    },
+    "findings": [
+      {
+        "severity": "sample string",
+        "type": "sample string",
+        "title": "sample string",
+        "description": "sample string",
+        "affected_artifacts": [
+          "sample string"
+        ],
+        "suggested_action": "sample string",
+        "auto_resolvable": false
+      }
+    ]
+  }
+}

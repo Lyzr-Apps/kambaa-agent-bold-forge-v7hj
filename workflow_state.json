@@ -1,0 +1,52 @@
+{
+  "agents": {
+    "pipeline_manager": {
+      "agent_id": "699d404eab5c2a239c014dec",
+      "name": "KKIA Pipeline Manager",
+      "type": "manager"
+    },
+    "comm_listener": {
+      "agent_id": "699d401bb180522b55d4456b",
+      "name": "Communication Listener Agent",
+      "type": "sub-agent"
+    },
+    "context_builder": {
+      "agent_id": "699d401b890f638fa36ade0e",
+      "name": "Context Builder Agent",
+      "type": "sub-agent"
+    },
+    "knowledge_structuring": {
+      "agent_id": "699d401b21d71325c4b02883",
+      "name": "Knowledge Structuring Agent",
+      "type": "sub-agent"
+    },
+    "role_knowledge": {
+      "agent_id": "699d404eb180522b55d44578",
+      "name": "Role-Based Knowledge Agent",
+      "type": "independent"
+    },
+    "conflict_detection": {
+      "agent_id": "699d404fab5c2a239c014dee",
+      "name": "Auto-Update & Conflict Detection Agent",
+      "type": "independent"
+    }
+  },
+  "knowledge_base": {
+    "rag_id": "699d3fa5e9e49857cb795eff",
+    "rag_name": "kkiaenterpriseknowledgebaserd2y"
+  },
+  "schedules": {
+    "pipeline_manager": {
+      "schedule_id": "699d4059399dfadeac38ea57",
+      "cron": "0 0,6,12,18 * * *",
+      "timezone": "UTC",
+      "is_active": false
+    },
+    "conflict_detection": {
+      "schedule_id": "699d4059399dfadeac38ea58",
+      "cron": "0 6 * * *",
+      "timezone": "UTC",
+      "is_active": false
+    }
+  }
+}

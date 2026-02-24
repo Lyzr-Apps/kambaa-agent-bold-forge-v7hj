@@ -1,0 +1,125 @@
+{
+  "workflow": {
+    "nodes": [
+      {"id": "input_node", "type": "Input", "label": "User Input / Trigger", "nodeCategory": "input"},
+      {"id": "pipeline_manager", "type": "Agent", "label": "KKIA Pipeline Manager", "nodeCategory": "agent"},
+      {"id": "comm_listener", "type": "Agent", "label": "Communication Listener Agent", "nodeCategory": "agent"},
+      {"id": "context_builder", "type": "Agent", "label": "Context Builder Agent", "nodeCategory": "agent"},
+      {"id": "knowledge_structuring", "type": "Agent", "label": "Knowledge Structuring Agent", "nodeCategory": "agent"},
+      {"id": "role_knowledge", "type": "Agent", "label": "Role-Based Knowledge Agent", "nodeCategory": "agent"},
+      {"id": "conflict_detection", "type": "Agent", "label": "Auto-Update & Conflict Detection Agent", "nodeCategory": "agent"},
+      {"id": "output_node", "type": "Output", "label": "Output", "nodeCategory": "end"}
+    ],
+    "edges": [
+      {"source": "input_node", "target": "pipeline_manager"},
+      {"source": "pipeline_manager", "target": "comm_listener"},
+      {"source": "pipeline_manager", "target": "context_builder"},
+      {"source": "pipeline_manager", "target": "knowledge_structuring"},
+      {"source": "input_node", "target": "role_knowledge"},
+      {"source": "input_node", "target": "conflict_detection"},
+      {"source": "comm_listener", "target": "output_node"},
+      {"source": "context_builder", "target": "output_node"},
+      {"source": "knowledge_structuring", "target": "output_node"},
+      {"source": "role_knowledge", "target": "output_node"},
+      {"source": "conflict_detection", "target": "output_node"}
+    ]
+  },
+  "agents": {
+    "pipeline_manager": {
+      "agent_id": "699d404eab5c2a239c014dec",
+      "name": "KKIA Pipeline Manager",
+      "type": "manager",
+      "provider": "openai",
+      "model": "gpt-4.1",
+      "temperature": 0.2,
+      "top_p": 1,
+      "managed_agents": [
+        "699d401bb180522b55d4456b",
+        "699d401b890f638fa36ade0e",
+        "699d401b21d71325c4b02883"
+      ],
+      "has_knowledge_base": false,
+      "has_tools": false
+    },
+    "comm_listener": {
+      "agent_id": "699d401bb180522b55d4456b",
+      "name": "Communication Listener Agent",
+      "type": "sub-agent",
+      "provider": "openai",
+      "model": "gpt-4.1",
+      "temperature": 0.2,
+      "top_p": 1,
+      "has_knowledge_base": false,
+      "has_tools": true,
+      "tools": ["gmail", "outlook", "slack", "msteams", "hubspot", "notion"]
+    },
+    "context_builder": {
+      "agent_id": "699d401b890f638fa36ade0e",
+      "name": "Context Builder Agent",
+      "type": "sub-agent",
+      "provider": "openai",
+      "model": "gpt-4.1",
+      "temperature": 0.3,
+      "top_p": 1,
+      "has_knowledge_base": false,
+      "has_tools": false
+    },
+    "knowledge_structuring": {
+      "agent_id": "699d401b21d71325c4b02883",
+      "name": "Knowledge Structuring Agent",
+      "type": "sub-agent",
+      "provider": "openai",
+      "model": "gpt-4.1",
+      "temperature": 0.3,
+      "top_p": 1,
+      "has_knowledge_base": true,
+      "has_tools": false
+    },
+    "role_knowledge": {
+      "agent_id": "699d404eb180522b55d44578",
+      "name": "Role-Based Knowledge Agent",
+      "type": "independent",
+      "provider": "openai",
+      "model": "gpt-4.1",
+      "temperature": 0.4,
+      "top_p": 0.95,
+      "has_knowledge_base": true,
+      "has_tools": false
+    },
+    "conflict_detection": {
+      "agent_id": "699d404fab5c2a239c014dee",
+      "name": "Auto-Update and Conflict Detection Agent",
+      "type": "independent",
+      "provider": "openai",
+      "model": "gpt-4.1",
+      "temperature": 0.2,
+      "top_p": 1,
+      "has_knowledge_base": true,
+      "has_tools": false
+    }
+  },
+  "knowledge_base": {
+    "rag_id": "699d3fa5e9e49857cb795eff",
+    "rag_name": "kkiaenterpriseknowledgebaserd2y",
+    "name": "KKIA Enterprise Knowledge Base",
+    "description": "Centralized enterprise knowledge base containing FAQs, SOPs, known issues, resolutions, and best practices extracted from Gmail, Outlook, Slack, Teams, HubSpot, and Notion communications for the digital transformation company."
+  },
+  "schedules": {
+    "pipeline_manager": {
+      "schedule_id": "699d4059399dfadeac38ea57",
+      "agent_id": "699d404eab5c2a239c014dec",
+      "cron_expression": "0 0,6,12,18 * * *",
+      "timezone": "UTC",
+      "is_active": false,
+      "description": "Every 6 hours (12AM, 6AM, 12PM, 6PM UTC)"
+    },
+    "conflict_detection": {
+      "schedule_id": "699d4059399dfadeac38ea58",
+      "agent_id": "699d404fab5c2a239c014dee",
+      "cron_expression": "0 6 * * *",
+      "timezone": "UTC",
+      "is_active": false,
+      "description": "Daily at 6:00 AM UTC"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "agent_name": "Role-Based Knowledge Agent",
+  "agent_id": "699d404eb180522b55d44578",
+  "description": "Answers employee queries from the structured knowledge base. Filters and tailors responses based on the querying employee's role (Sales, PM, Support Engineer, Leadership, etc.)",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "answer": "string",
+    "confidence": "string",
+    "role_context": "string",
+    "sources": [
+      {
+        "title": "string",
+        "type": "string",
+        "relevance_score": "number",
+        "excerpt": "string"
+      }
+    ],
+    "related_topics": [
+      "string"
+    ],
+    "follow_up_suggestions": [
+      "string"
+    ]
+  },
+  "example_response": {
+    "answer": "sample string",
+    "confidence": "sample string",
+    "role_context": "sample string",
+    "sources": [
+      {
+        "title": "sample string",
+        "type": "sample string",
+        "relevance_score": 0,
+        "excerpt": "sample string"
+      }
+    ],
+    "related_topics": [
+      "sample string"
+    ],
+    "follow_up_suggestions": [
+      "sample string"
+    ]
+  }
+}

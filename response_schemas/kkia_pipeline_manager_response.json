@@ -1,0 +1,86 @@
+{
+  "agent_name": "KKIA Pipeline Manager",
+  "agent_id": "699d404eab5c2a239c014dec",
+  "description": "Coordinates the ingestion-to-structuring pipeline: routes raw communications through listener, context builder, and knowledge structuring sub-agents, then confirms completion",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "status": "string",
+    "pipeline_summary": {
+      "total_items_fetched": "number",
+      "total_threads_created": "number",
+      "total_artifacts_created": "number",
+      "pipeline_duration": "string",
+      "errors_encountered": "number"
+    },
+    "stage_results": {
+      "communication_listener": {
+        "status": "string",
+        "items_fetched": "number",
+        "source_breakdown": {
+          "gmail": "number",
+          "outlook": "number",
+          "slack": "number",
+          "teams": "number",
+          "hubspot": "number",
+          "notion": "number"
+        }
+      },
+      "context_builder": {
+        "status": "string",
+        "threads_created": "number",
+        "avg_confidence": "number"
+      },
+      "knowledge_structuring": {
+        "status": "string",
+        "artifacts_created": "number",
+        "artifacts_by_type": {
+          "faqs": "number",
+          "sops": "number",
+          "known_issues": "number",
+          "best_practices": "number"
+        }
+      }
+    }
+  },
+  "example_response": {
+    "status": "sample string",
+    "pipeline_summary": {
+      "total_items_fetched": 0,
+      "total_threads_created": 0,
+      "total_artifacts_created": 0,
+      "pipeline_duration": "sample string",
+      "errors_encountered": 0
+    },
+    "stage_results": {
+      "communication_listener": {
+        "status": "sample string",
+        "items_fetched": 0,
+        "source_breakdown": {
+          "gmail": 0,
+          "outlook": 0,
+          "slack": 0,
+          "teams": 0,
+          "hubspot": 0,
+          "notion": 0
+        }
+      },
+      "context_builder": {
+        "status": "sample string",
+        "threads_created": 0,
+        "avg_confidence": 0
+      },
+      "knowledge_structuring": {
+        "status": "sample string",
+        "artifacts_created": 0,
+        "artifacts_by_type": {
+          "faqs": 0,
+          "sops": 0,
+          "known_issues": 0,
+          "best_practices": 0
+        }
+      }
+    }
+  }
+}
