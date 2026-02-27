@@ -728,6 +728,21 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
     loadDocuments()
   }, [loadDocuments])
 
+  const mimeMap: Record<string, string> = {
+    '.pdf': 'application/pdf',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.txt': 'text/plain',
+  }
+
+  const ensureMime = (file: File): File => {
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+    const expectedMime = mimeMap[ext]
+    if (expectedMime && file.type !== expectedMime) {
+      return new File([file], file.name, { type: expectedMime })
+    }
+    return file
+  }
+
   const processFiles = async (fileList: File[]) => {
     if (fileList.length === 0) return
     const validExts = ['.pdf', '.docx', '.txt']
@@ -749,15 +764,22 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
     let failCount = 0
 
     for (let i = 0; i < validFiles.length; i++) {
-      const file = validFiles[i]
+      const rawFile = validFiles[i]
+      const file = ensureMime(rawFile)
+
+      // Mark as uploading
       setUploadQueue((prev) =>
         prev.map((item, idx) => idx === i ? { ...item, status: 'uploading' } : item)
       )
+      // Small delay so the UI renders the uploading state before the network call
+      await new Promise((r) => setTimeout(r, 150))
+
+      // Mark as training (upload + train is one API call)
+      setUploadQueue((prev) =>
+        prev.map((item, idx) => idx === i ? { ...item, status: 'training' } : item)
+      )
 
       try {
-        setUploadQueue((prev) =>
-          prev.map((item, idx) => idx === i ? { ...item, status: 'training' } : item)
-        )
         const result = await uploadAndTrainDocument(RAG_ID, file)
         if (result.success) {
           successCount++
@@ -770,10 +792,10 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
             prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: result.error ?? 'Upload failed' } : item)
           )
         }
-      } catch {
+      } catch (err) {
         failCount++
         setUploadQueue((prev) =>
-          prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: 'Network error' } : item)
+          prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: err instanceof Error ? err.message : 'Network error' } : item)
         )
       }
     }
@@ -792,8 +814,10 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
-    await processFiles(Array.from(files))
+    const fileArray = Array.from(files)
+    // Reset the input immediately so the same files can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = ''
+    await processFiles(fileArray)
   }
 
   const handleDrop = async (e: React.DragEvent) => {
