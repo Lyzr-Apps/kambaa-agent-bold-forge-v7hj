@@ -148,105 +148,6 @@ interface ChatMessage {
 }
 
 // ---------------------------------------------------------------------------
-// Sample Data
-// ---------------------------------------------------------------------------
-
-const SAMPLE_CHAT_MESSAGES: ChatMessage[] = [
-  {
-    id: '1',
-    role: 'user',
-    content: 'What is our escalation process for critical production issues?',
-    timestamp: new Date(Date.now() - 300000).toISOString(),
-  },
-  {
-    id: '2',
-    role: 'assistant',
-    content: '',
-    timestamp: new Date(Date.now() - 295000).toISOString(),
-    data: {
-      answer: '## Critical Production Escalation Process\n\nWhen a **critical production issue** is identified, follow this escalation path:\n\n1. **L1 Support** acknowledges within 5 minutes and begins triage\n2. **L2 Engineering** is paged if not resolved within 15 minutes\n3. **Engineering Lead** is notified at the 30-minute mark\n4. **VP Engineering + CTO** are briefed if impact exceeds 1 hour\n\n### Communication Requirements\n- Status updates every 15 minutes in #incident-response Slack channel\n- Customer communication via StatusPage within 10 minutes of confirmation\n- Post-mortem document within 48 hours of resolution',
-      confidence: 'High',
-      role_context: 'Support Engineer - Full escalation visibility with technical details',
-      sources: [
-        { title: 'SOP-2024-Incident-Response', type: 'SOP', relevance_score: 0.95, excerpt: 'Critical incidents require immediate L1 acknowledgment within 5 minutes...' },
-        { title: 'FAQ-Escalation-Matrix', type: 'FAQ', relevance_score: 0.88, excerpt: 'The escalation matrix defines four tiers of response...' },
-        { title: 'BP-Communication-During-Outages', type: 'Best Practice', relevance_score: 0.82, excerpt: 'Always communicate proactively with affected customers...' },
-      ],
-      related_topics: ['Incident Severity Levels', 'Post-Mortem Template', 'On-Call Rotation'],
-      follow_up_suggestions: ['What are the severity level definitions?', 'Show me the post-mortem template', 'Who is currently on-call?'],
-    },
-  },
-]
-
-const SAMPLE_PIPELINE_RESPONSE: PipelineManagerResponse = {
-  status: 'completed',
-  pipeline_summary: {
-    total_items_fetched: 247,
-    total_threads_created: 89,
-    total_artifacts_created: 34,
-    pipeline_duration: '4m 32s',
-    errors_encountered: 2,
-  },
-  stage_results: {
-    communication_listener: {
-      status: 'completed',
-      items_fetched: 247,
-      source_breakdown: { gmail: 78, outlook: 42, slack: 65, teams: 31, hubspot: 19, notion: 12 },
-    },
-    context_builder: {
-      status: 'completed',
-      threads_created: 89,
-      avg_confidence: 0.87,
-    },
-    knowledge_structuring: {
-      status: 'completed',
-      artifacts_created: 34,
-      artifacts_by_type: { faqs: 12, sops: 8, known_issues: 9, best_practices: 5 },
-    },
-  },
-}
-
-const SAMPLE_CONFLICT_RESPONSE: ConflictDetectionResponse = {
-  status: 'completed',
-  scan_summary: {
-    total_artifacts_scanned: 156,
-    issues_found: 7,
-    critical_count: 1,
-    high_count: 2,
-    medium_count: 3,
-    low_count: 1,
-  },
-  findings: [
-    {
-      severity: 'Critical',
-      type: 'Contradiction',
-      title: 'Conflicting SLA response times in Support SOPs',
-      description: 'SOP-2024-Support-SLA states 4-hour response for critical issues, but SOP-2024-Enterprise-Support states 2-hour response. These documents cover the same escalation tier.',
-      affected_artifacts: ['SOP-2024-Support-SLA', 'SOP-2024-Enterprise-Support'],
-      suggested_action: 'Unify response time to 2 hours across all support SOPs and update the SLA documentation.',
-      auto_resolvable: false,
-    },
-    {
-      severity: 'High',
-      type: 'Outdated Reference',
-      title: 'Deprecated API endpoint referenced in integration guide',
-      description: 'The integration guide FAQ-API-v2-Setup references /api/v2/auth which was deprecated 3 months ago. Current endpoint is /api/v3/auth.',
-      affected_artifacts: ['FAQ-API-v2-Setup'],
-      suggested_action: 'Update all references from /api/v2/ to /api/v3/ in the integration guide.',
-      auto_resolvable: true,
-    },
-    {
-      severity: 'Medium',
-      type: 'Missing Coverage',
-      title: 'No SOP for new billing dispute workflow',
-      description: 'Recent Slack threads indicate a new billing dispute process was adopted 2 weeks ago, but no SOP has been created to document it.',
-      affected_artifacts: ['thread-billing-dispute-2024-01'],
-      suggested_action: 'Create a new SOP documenting the billing dispute resolution workflow.',
-      auto_resolvable: false,
-    },
-  ],
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -440,9 +341,8 @@ function Sidebar({ activeView, setActiveView, collapsed, setCollapsed, selectedR
 // Chat View
 // ---------------------------------------------------------------------------
 
-function ChatView({ selectedRole, sampleMode, activeAgentId, setActiveAgentId }: {
+function ChatView({ selectedRole, activeAgentId, setActiveAgentId }: {
   selectedRole: Role
-  sampleMode: boolean
   activeAgentId: string | null
   setActiveAgentId: (id: string | null) => void
 }) {
@@ -452,14 +352,6 @@ function ChatView({ selectedRole, sampleMode, activeAgentId, setActiveAgentId }:
   const [sessionId] = useState(() => generateSessionId())
   const scrollRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (sampleMode) {
-      setMessages(SAMPLE_CHAT_MESSAGES)
-    } else {
-      setMessages([])
-    }
-  }, [sampleMode])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -698,9 +590,10 @@ interface FileUploadStatus {
   error?: string
 }
 
-function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
+function KnowledgeBaseView() {
   const [documents, setDocuments] = useState<RAGDocument[]>([])
-  const [loadingDocs, setLoadingDocs] = useState(false)
+  const [loadingDocs, setLoadingDocs] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [uploadQueue, setUploadQueue] = useState<FileUploadStatus[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -709,23 +602,37 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isUploading = uploadQueue.some((f) => f.status === 'uploading' || f.status === 'training' || f.status === 'pending')
+  const hasFetched = useRef(false)
 
-  const loadDocuments = useCallback(async () => {
+  const loadDocuments = useCallback(async (isRetry = false) => {
     setLoadingDocs(true)
+    setLoadError(null)
     try {
       const result = await getDocuments(RAG_ID)
       if (result.success && Array.isArray(result.documents)) {
         setDocuments(result.documents)
+        setLoadError(null)
+      } else {
+        const errMsg = result.error || 'Could not load documents from knowledge base.'
+        setLoadError(errMsg)
+        // If first load failed, retry once after a short delay
+        if (!isRetry) {
+          setTimeout(() => loadDocuments(true), 2000)
+          return
+        }
       }
     } catch {
-      setStatusMessage({ type: 'error', text: 'Failed to load documents.' })
+      setLoadError('Network error loading documents. Click Retry to try again.')
     } finally {
       setLoadingDocs(false)
     }
   }, [])
 
   useEffect(() => {
-    loadDocuments()
+    if (!hasFetched.current) {
+      hasFetched.current = true
+      loadDocuments()
+    }
   }, [loadDocuments])
 
   const mimeMap: Record<string, string> = {
@@ -993,13 +900,29 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
               <span className="block w-3 h-3 rounded-full bg-muted-foreground/50 animate-[typingDot_1.4s_ease-in-out_0.2s_infinite]" />
               <span className="block w-3 h-3 rounded-full bg-muted-foreground/50 animate-[typingDot_1.4s_ease-in-out_0.4s_infinite]" />
             </div>
-            <p className="text-sm text-muted-foreground">Loading documents...</p>
+            <p className="text-sm text-muted-foreground">Loading documents from knowledge base...</p>
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <FiAlertCircle className="w-12 h-12 text-red-400/60 mb-4" />
+            <h3 className="text-base font-semibold text-foreground mb-1">Could not load documents</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mb-4">{loadError}</p>
+            <Button variant="outline" size="sm" onClick={() => loadDocuments()}>
+              <FiRefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
           </div>
         ) : filteredDocs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <FiDatabase className="w-12 h-12 text-muted-foreground/30 mb-4" />
-            <h3 className="text-base font-semibold text-foreground mb-1">{searchQuery ? 'No matching documents' : 'No documents yet'}</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">{searchQuery ? 'Try a different search term' : 'Upload PDF, DOCX, or TXT files to build your knowledge base.'}</p>
+            <h3 className="text-base font-semibold text-foreground mb-1">{searchQuery ? 'No matching documents' : 'Knowledge base is empty'}</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mb-4">{searchQuery ? 'Try a different search term.' : 'Upload PDF, DOCX, or TXT files to build your knowledge base. Documents are stored permanently and will persist across sessions.'}</p>
+            {!searchQuery && (
+              <Button size="sm" onClick={() => fileInputRef.current?.click()}>
+                <FiUpload className="w-4 h-4 mr-2" />
+                Upload Your First Document
+              </Button>
+            )}
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1078,8 +1001,7 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
 // Admin Dashboard View
 // ---------------------------------------------------------------------------
 
-function AdminDashboardView({ sampleMode, activeAgentId, setActiveAgentId }: {
-  sampleMode: boolean
+function AdminDashboardView({ activeAgentId, setActiveAgentId }: {
   activeAgentId: string | null
   setActiveAgentId: (id: string | null) => void
 }) {
@@ -1101,16 +1023,6 @@ function AdminDashboardView({ sampleMode, activeAgentId, setActiveAgentId }: {
 
   // Admin tab
   const [adminTab, setAdminTab] = useState('overview')
-
-  useEffect(() => {
-    if (sampleMode) {
-      setPipelineData(SAMPLE_PIPELINE_RESPONSE)
-      setConflictData(SAMPLE_CONFLICT_RESPONSE)
-    } else {
-      setPipelineData(null)
-      setConflictData(null)
-    }
-  }, [sampleMode])
 
   // Load schedules on mount
   const loadSchedules = useCallback(async () => {
@@ -1747,7 +1659,6 @@ export default function Page() {
   const [activeView, setActiveView] = useState('chat')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [selectedRole, setSelectedRole] = useState<Role>('Support Engineer')
-  const [sampleMode, setSampleMode] = useState(false)
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null)
 
   return (
@@ -1759,7 +1670,7 @@ export default function Page() {
         }
       `}} />
       <div style={THEME_VARS} className="h-screen flex flex-col bg-background text-foreground font-sans" >
-        {/* Top bar with sample toggle */}
+        {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-border" style={{ background: 'linear-gradient(135deg, hsl(210 20% 97%) 0%, hsl(220 25% 95%) 35%, hsl(200 20% 96%) 70%, hsl(230 15% 97%) 100%)' }}>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
@@ -1768,8 +1679,9 @@ export default function Page() {
             <span className="text-sm font-semibold text-foreground tracking-tight">Kambaa Knowledge Intelligence Agent</span>
           </div>
           <div className="flex items-center gap-2">
-            <Label htmlFor="sample-toggle" className="text-xs text-muted-foreground">Sample Data</Label>
-            <Switch id="sample-toggle" checked={sampleMode} onCheckedChange={setSampleMode} />
+            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+              <FiDatabase className="w-3 h-3 mr-1" /> Live Data
+            </Badge>
           </div>
         </div>
 
@@ -1785,13 +1697,13 @@ export default function Page() {
           />
           <main className="flex-1 flex flex-col overflow-hidden" style={{ background: 'linear-gradient(135deg, hsl(210 20% 97%) 0%, hsl(220 25% 95%) 35%, hsl(200 20% 96%) 70%, hsl(230 15% 97%) 100%)' }}>
             {activeView === 'chat' && (
-              <ChatView selectedRole={selectedRole} sampleMode={sampleMode} activeAgentId={activeAgentId} setActiveAgentId={setActiveAgentId} />
+              <ChatView selectedRole={selectedRole} activeAgentId={activeAgentId} setActiveAgentId={setActiveAgentId} />
             )}
             {activeView === 'knowledge' && (
-              <KnowledgeBaseView sampleMode={sampleMode} />
+              <KnowledgeBaseView />
             )}
             {activeView === 'admin' && (
-              <AdminDashboardView sampleMode={sampleMode} activeAgentId={activeAgentId} setActiveAgentId={setActiveAgentId} />
+              <AdminDashboardView activeAgentId={activeAgentId} setActiveAgentId={setActiveAgentId} />
             )}
           </main>
         </div>
