@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
-import { Skeleton } from '@/components/ui/skeleton'
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -809,14 +809,13 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
       {/* Document list */}
       <ScrollArea className="flex-1 p-6">
         {loadingDocs ? (
-          <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-3'}`}>
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <GlassCard key={i} className="p-4">
-                <Skeleton className="h-5 w-3/4 mb-3" />
-                <Skeleton className="h-3 w-1/2 mb-2" />
-                <Skeleton className="h-3 w-1/3" />
-              </GlassCard>
-            ))}
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="block w-3 h-3 rounded-full bg-muted-foreground/50 animate-[typingDot_1.4s_ease-in-out_infinite]" />
+              <span className="block w-3 h-3 rounded-full bg-muted-foreground/50 animate-[typingDot_1.4s_ease-in-out_0.2s_infinite]" />
+              <span className="block w-3 h-3 rounded-full bg-muted-foreground/50 animate-[typingDot_1.4s_ease-in-out_0.4s_infinite]" />
+            </div>
+            <p className="text-sm text-muted-foreground">Loading documents...</p>
           </div>
         ) : filteredDocs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -1141,7 +1140,7 @@ function AdminDashboardView({ sampleMode, activeAgentId, setActiveAgentId }: {
             })}
           </div>
 
-          {/* Pipeline loading skeleton */}
+          {/* Pipeline loading progress */}
           {pipelineLoading && (
             <GlassCard className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -1269,12 +1268,14 @@ function AdminDashboardView({ sampleMode, activeAgentId, setActiveAgentId }: {
             <TabsContent value="conflicts" className="space-y-4">
               {conflictLoading && (
                 <GlassCard className="p-6">
-                  <div className="flex items-center gap-3">
-                    <FiRefreshCw className="w-5 h-5 animate-spin text-primary" />
-                    <span className="text-sm font-medium">Running conflict scan...</span>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full" />)}
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="block w-3 h-3 rounded-full bg-primary/60 animate-[typingDot_1.4s_ease-in-out_infinite]" />
+                      <span className="block w-3 h-3 rounded-full bg-primary/60 animate-[typingDot_1.4s_ease-in-out_0.2s_infinite]" />
+                      <span className="block w-3 h-3 rounded-full bg-primary/60 animate-[typingDot_1.4s_ease-in-out_0.4s_infinite]" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Running conflict scan...</p>
+                    <p className="text-xs text-muted-foreground mt-1">Analyzing knowledge base for issues</p>
                   </div>
                 </GlassCard>
               )}
@@ -1373,8 +1374,13 @@ function AdminDashboardView({ sampleMode, activeAgentId, setActiveAgentId }: {
               )}
 
               {schedulesLoading ? (
-                <div className="space-y-3">
-                  {[1, 2].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+                <div className="flex flex-col items-center justify-center py-10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="block w-3 h-3 rounded-full bg-muted-foreground/50 animate-[typingDot_1.4s_ease-in-out_infinite]" />
+                    <span className="block w-3 h-3 rounded-full bg-muted-foreground/50 animate-[typingDot_1.4s_ease-in-out_0.2s_infinite]" />
+                    <span className="block w-3 h-3 rounded-full bg-muted-foreground/50 animate-[typingDot_1.4s_ease-in-out_0.4s_infinite]" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Loading schedules...</p>
                 </div>
               ) : schedules.length > 0 ? (
                 <div className="space-y-4">
