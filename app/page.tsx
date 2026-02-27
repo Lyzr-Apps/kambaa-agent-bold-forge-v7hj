@@ -691,15 +691,24 @@ function ChatView({ selectedRole, sampleMode, activeAgentId, setActiveAgentId }:
 // Knowledge Base View
 // ---------------------------------------------------------------------------
 
+interface FileUploadStatus {
+  name: string
+  size: number
+  status: 'pending' | 'uploading' | 'training' | 'success' | 'error'
+  error?: string
+}
+
 function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
   const [documents, setDocuments] = useState<RAGDocument[]>([])
   const [loadingDocs, setLoadingDocs] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [uploadQueue, setUploadQueue] = useState<FileUploadStatus[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [selectedDoc, setSelectedDoc] = useState<RAGDocument | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isUploading = uploadQueue.some((f) => f.status === 'uploading' || f.status === 'training' || f.status === 'pending')
 
   const loadDocuments = useCallback(async () => {
     setLoadingDocs(true)
@@ -719,26 +728,79 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
     loadDocuments()
   }, [loadDocuments])
 
+  const processFiles = async (fileList: File[]) => {
+    if (fileList.length === 0) return
+    const validExts = ['.pdf', '.docx', '.txt']
+    const validFiles = fileList.filter((f) => validExts.some((ext) => f.name.toLowerCase().endsWith(ext)))
+    if (validFiles.length === 0) {
+      setStatusMessage({ type: 'error', text: 'No supported files selected. Accepted: PDF, DOCX, TXT.' })
+      return
+    }
+
+    setStatusMessage(null)
+    const initialQueue: FileUploadStatus[] = validFiles.map((f) => ({
+      name: f.name,
+      size: f.size,
+      status: 'pending' as const,
+    }))
+    setUploadQueue(initialQueue)
+
+    let successCount = 0
+    let failCount = 0
+
+    for (let i = 0; i < validFiles.length; i++) {
+      const file = validFiles[i]
+      setUploadQueue((prev) =>
+        prev.map((item, idx) => idx === i ? { ...item, status: 'uploading' } : item)
+      )
+
+      try {
+        setUploadQueue((prev) =>
+          prev.map((item, idx) => idx === i ? { ...item, status: 'training' } : item)
+        )
+        const result = await uploadAndTrainDocument(RAG_ID, file)
+        if (result.success) {
+          successCount++
+          setUploadQueue((prev) =>
+            prev.map((item, idx) => idx === i ? { ...item, status: 'success' } : item)
+          )
+        } else {
+          failCount++
+          setUploadQueue((prev) =>
+            prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: result.error ?? 'Upload failed' } : item)
+          )
+        }
+      } catch {
+        failCount++
+        setUploadQueue((prev) =>
+          prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: 'Network error' } : item)
+        )
+      }
+    }
+
+    await loadDocuments()
+    const parts: string[] = []
+    if (successCount > 0) parts.push(`${successCount} file${successCount > 1 ? 's' : ''} uploaded successfully`)
+    if (failCount > 0) parts.push(`${failCount} file${failCount > 1 ? 's' : ''} failed`)
+    setStatusMessage({ type: failCount > 0 ? 'error' : 'success', text: parts.join('. ') + '.' })
+
+    setTimeout(() => {
+      setUploadQueue((prev) => prev.filter((f) => f.status !== 'success'))
+    }, 4000)
+  }
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
-    setUploading(true)
-    setStatusMessage(null)
-    try {
-      const file = files[0]
-      const result = await uploadAndTrainDocument(RAG_ID, file)
-      if (result.success) {
-        setStatusMessage({ type: 'success', text: `${result.fileName ?? file.name} uploaded and training started.` })
-        await loadDocuments()
-      } else {
-        setStatusMessage({ type: 'error', text: result.error ?? 'Upload failed.' })
-      }
-    } catch {
-      setStatusMessage({ type: 'error', text: 'Upload error occurred.' })
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
+    await processFiles(Array.from(files))
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const files = Array.from(e.dataTransfer.files)
+    await processFiles(files)
   }
 
   const handleDelete = async (docName: string) => {
@@ -777,16 +839,108 @@ function KnowledgeBaseView({ sampleMode }: { sampleMode: boolean }) {
           <Button variant="outline" size="sm" onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
             {viewMode === 'grid' ? <FiList className="w-4 h-4" /> : <FiGrid className="w-4 h-4" />}
           </Button>
-          <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-            {uploading ? <FiRefreshCw className="w-4 h-4 animate-spin mr-2" /> : <FiUpload className="w-4 h-4 mr-2" />}
-            Upload Document
+          <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+            {isUploading ? <FiRefreshCw className="w-4 h-4 animate-spin mr-2" /> : <FiUpload className="w-4 h-4 mr-2" />}
+            Upload Files
           </Button>
-          <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" onChange={handleUpload} className="hidden" />
+          <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" multiple onChange={handleUpload} className="hidden" />
         </div>
       </div>
 
+      {/* Drag-and-drop zone */}
+      {!isUploading && uploadQueue.length === 0 && (
+        <div
+          className={`mx-6 mt-4 border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground/40'}`}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <FiUpload className={`w-8 h-8 mx-auto mb-2 ${dragOver ? 'text-primary' : 'text-muted-foreground/40'}`} />
+          <p className="text-sm font-medium text-foreground">
+            {dragOver ? 'Drop files here' : 'Drag and drop files here, or click to browse'}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Supports PDF, DOCX, TXT -- select multiple files at once</p>
+        </div>
+      )}
+
+      {/* Bulk upload progress panel */}
+      {uploadQueue.length > 0 && (
+        <div className="mx-6 mt-4">
+          <GlassCard className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FiUpload className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">
+                  Uploading {uploadQueue.length} file{uploadQueue.length > 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <FiCheckCircle className="w-3 h-3 text-green-600" />
+                  {uploadQueue.filter((f) => f.status === 'success').length}
+                </span>
+                {uploadQueue.some((f) => f.status === 'error') && (
+                  <span className="flex items-center gap-1">
+                    <FiAlertCircle className="w-3 h-3 text-red-500" />
+                    {uploadQueue.filter((f) => f.status === 'error').length}
+                  </span>
+                )}
+                {!isUploading && (
+                  <button onClick={() => setUploadQueue([])} className="text-muted-foreground hover:text-foreground transition-colors">
+                    <FiX className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+            {/* Overall progress bar */}
+            <div className="w-full bg-muted rounded-full h-1.5 mb-3">
+              <div
+                className="h-1.5 rounded-full bg-primary transition-all duration-500"
+                style={{ width: `${Math.round((uploadQueue.filter((f) => f.status === 'success' || f.status === 'error').length / uploadQueue.length) * 100)}%` }}
+              />
+            </div>
+            {/* Per-file status rows */}
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {uploadQueue.map((file, idx) => (
+                <div key={idx} className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex-shrink-0">
+                    {file.status === 'pending' && <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30" />}
+                    {file.status === 'uploading' && (
+                      <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                    )}
+                    {file.status === 'training' && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="block w-1.5 h-1.5 rounded-full bg-primary animate-[typingDot_1.4s_ease-in-out_infinite]" />
+                        <span className="block w-1.5 h-1.5 rounded-full bg-primary animate-[typingDot_1.4s_ease-in-out_0.2s_infinite]" />
+                        <span className="block w-1.5 h-1.5 rounded-full bg-primary animate-[typingDot_1.4s_ease-in-out_0.4s_infinite]" />
+                      </div>
+                    )}
+                    {file.status === 'success' && <FiCheckCircle className="w-4 h-4 text-green-600" />}
+                    {file.status === 'error' && <FiAlertCircle className="w-4 h-4 text-red-500" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground truncate">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {file.status === 'pending' && 'Waiting...'}
+                      {file.status === 'uploading' && 'Uploading...'}
+                      {file.status === 'training' && 'Uploading and training...'}
+                      {file.status === 'success' && 'Complete'}
+                      {file.status === 'error' && (file.error || 'Failed')}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground flex-shrink-0">
+                    {(file.size / 1024).toFixed(0)} KB
+                  </span>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
       {statusMessage && (
-        <div className={`mx-6 mt-4 flex items-center gap-2 text-sm px-4 py-2.5 rounded-lg ${statusMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+        <div className={`mx-6 mt-3 flex items-center gap-2 text-sm px-4 py-2.5 rounded-lg ${statusMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
           {statusMessage.type === 'success' ? <FiCheckCircle className="w-4 h-4" /> : <FiAlertCircle className="w-4 h-4" />}
           <span>{statusMessage.text}</span>
           <button onClick={() => setStatusMessage(null)} className="ml-auto"><FiX className="w-3 h-3" /></button>
